@@ -11,12 +11,19 @@ return [
     'basePath' => dirname(__DIR__),
     'bootstrap' => ['log'],
     'controllerNamespace' => 'frontend\controllers',
+    'defaultRoute' => 'mongo-site',
+    'layout' => 'mongo-main',
+    'modules' => [
+        'api' => [
+            'class' => 'modules\api\Api',
+        ],
+    ],
     'components' => [
         'request' => [
             'csrfParam' => '_csrf-frontend',
         ],
         'user' => [
-            'identityClass' => 'common\models\User',
+            'identityClass' => 'common\models\MongoUser',
             'enableAutoLogin' => true,
             'identityCookie' => ['name' => '_identity-frontend', 'httpOnly' => true],
         ],
@@ -34,16 +41,18 @@ return [
             ],
         ],
         'errorHandler' => [
-            'errorAction' => 'site/error',
+            // 'errorAction' => 'site/error',
+            'errorAction' => 'api/error',
         ],
-        /*
         'urlManager' => [
             'enablePrettyUrl' => true,
+            'enableStrictParsing' => true,
             'showScriptName' => false,
             'rules' => [
+                'login' => 'api/login',
+                'identity' => 'api/identity',
             ],
         ],
-        */
     ],
     'params' => $params,
 ];
