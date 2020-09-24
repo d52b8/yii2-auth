@@ -283,8 +283,13 @@ class MongoUser extends ActiveRecord implements IdentityInterface
     public function validatePasswordWithAudit($password)
     {
         if ($this->validatePassword($password)) {
+            $this->login_attempt = 0;
+            
             $message = "Учетная запись {$this->username} Успешная авторизация";
             $response = (\Yii::$container->get('bot'))->sendMessage($message);
+        
+            $this->save();
+
             return true;
         }
 
