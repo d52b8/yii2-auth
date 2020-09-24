@@ -29,6 +29,8 @@ class MongoUser extends ActiveRecord implements IdentityInterface
     const STATUS_INACTIVE = 9;
     const STATUS_ACTIVE = 10;
 
+    const MAX_LOGIN_ATTEMPT = 5;
+
     /**
      * {@inheritdoc}
      */
@@ -53,7 +55,8 @@ class MongoUser extends ActiveRecord implements IdentityInterface
             'created_at',
             'updated_at',
             'verification_token',
-            'access_token'
+            'access_token',
+            'login_attempt'
         ];
     }
     
@@ -250,4 +253,53 @@ class MongoUser extends ActiveRecord implements IdentityInterface
         $this->access_token = Yii::$app->security->generateRandomString();
     }
 
+    /**
+     * Increment login counter
+     *
+     * @return void
+     */
+    private function loginAttempt()
+    {
+        $this->login_attempt++;
+    }
+
+    /**
+     * Set inactivate status
+     *
+     * @return void
+     */
+    public function inactivate()
+    {
+        $this->status = self::STATUS_INACTIVE;
+    }
+
+    /**
+     * Validate password
+     * Audit login attempt (increment attempt if wrong password)
+     * Inactivate if needed
+     *
+     * @return boolean
+     */
+    public function validatePasswordWithAudit($password)
+    {
+        if ($this->validatePassword($password)) {
+            $message = "Учетная запись {$this->username} Успешная авторизация";
+            $response = (\Yii::$container->get('bot'))->sendMessage($message);
+            return true;
+        }
+
+        $this->loginAttempt();
+        $message = "Учетная запись {$this->username} Попытка ввода неверного пароля {$this->login_attempt}";
+        $response = (\Yii::$container->get('bot'))->sendMessage($message);
+
+        if ($this->login_attempt >= self::MAX_LOGIN_ATTEMPT) {
+            $this->inactivate();
+            $message = "Учетная запись {$this->username} заблокирована. Превышен лимит попыток неверного ввода пароля";
+            $response = \Yii::$container->get('bot')->sendMessage($message);
+        }
+
+        $this->save();
+
+        return false;
+    }
 }

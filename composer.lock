@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1683239024b048934fdf76f76c3b68e7",
+    "content-hash": "cab861d57a876d2ccc6d4aa2b84c81ce",
     "packages": [
         {
             "name": "bower-asset/bootstrap",
@@ -32,7 +32,7 @@
             "version": "3.3.11",
             "source": {
                 "type": "git",
-                "url": "https://github.com/RobinHerbots/Inputmask.git",
+                "url": "git@github.com:RobinHerbots/Inputmask.git",
                 "reference": "5e670ad62f50c738388d4dcec78d2888505ad77b"
             },
             "dist": {
@@ -161,6 +161,49 @@
                 "markdown-extra"
             ],
             "time": "2018-03-26T11:24:36+00:00"
+        },
+        {
+            "name": "d52b8/telegram-bot",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/d52b8/php-telegram-bot.git",
+                "reference": "6724616ab4013256295ca567d0f8ca070b0c080b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/d52b8/php-telegram-bot/zipball/6724616ab4013256295ca567d0f8ca070b0c080b",
+                "reference": "6724616ab4013256295ca567d0f8ca070b0c080b",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "^7.2"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^8.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "d52b8\\telegram\\": "lib/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "d52b8",
+                    "email": "d52b8@yandex.ru"
+                }
+            ],
+            "description": "Simple Telegram Bot",
+            "keywords": [
+                "bot",
+                "telegram"
+            ],
+            "time": "2020-07-24T14:20:22+00:00"
         },
         {
             "name": "doctrine/lexer",

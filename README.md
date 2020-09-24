@@ -13,10 +13,24 @@ composer require --prefer-dist yiisoft/yii2-mongodb
 ``` php
 
 // Mongodb
-'mongodb' => [
-    'class' => '\yii\mongodb\Connection',
-    'dsn' => 'mongodb://localhost:27017/auth',
+'components' => [
+    //...
+    'mongodb' => [
+        'class' => '\yii\mongodb\Connection',
+        'dsn' => 'mongodb://localhost:27017/auth',
+    ],
+    //...
 ],
+'container' => [
+    'definitions' => [
+        'bot' => function () {
+            return new \d52b8\telegram\Bot([
+                'token' => '<TOKEN>',
+                'chat_id' => '<CHAT_ID>'
+            ]);
+        }
+    ],
+]
 
 ```
 
