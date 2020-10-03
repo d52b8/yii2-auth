@@ -3,7 +3,6 @@
 namespace console\controllers;
 
 use yii\console\Controller;
-use yii\base\InvalidArgumentException;
 use common\models\MongoUser;
 use frontend\models\MongoSignupForm;
 use yii\console\ExitCode;
@@ -18,24 +17,11 @@ class UserController extends Controller
     public $email;
     public $status;
     
-    // public function options($actionID)
-    // {
-    //     return [
-    //         'id',
-    //         'username',
-    //         'password',
-    //         'email',
-    //         'status'
-    //     ];
-    // }
-    
-    public function optionAliases()
-    {
-        // return [
-        //     'm' => 'message'
-        // ];
-    }
-    
+    /**
+     * Find all MongoUser
+     *
+     * @return common\models\MongoUser[]
+     */
     public function actionIndex()
     {
         $users = MongoUser::find()->all();
@@ -47,6 +33,14 @@ class UserController extends Controller
         return ExitCode::OK;
     }
 
+    /**
+     * Create MongoUser
+     *
+     * @param string $username
+     * @param string $password
+     * @param string $email
+     * @return yii\console\ExitCode::OK|yii\console\ExitCode::UNSPECIFIED_ERROR
+     */
     public function actionCreate($username, $password, $email)
     {        
         $form = new MongoSignupForm();
@@ -80,6 +74,13 @@ class UserController extends Controller
         return ExitCode::UNSPECIFIED_ERROR;
     }
 
+    /**
+     * Set password
+     *
+     * @param string $id
+     * @param string $password
+     * @return yii\console\ExitCode::OK|yii\console\ExitCode::UNSPECIFIED_ERROR
+     */
     public function actionSetPassword($id, $password)
     {        
         $user = $this->findOne($id);
@@ -95,6 +96,12 @@ class UserController extends Controller
         return ExitCode::UNSPECIFIED_ERROR;
     }
 
+    /**
+     * Set status MongoUser::STATUS_ACTIVE
+     *
+     * @param string $id
+     * @return yii\console\ExitCode::OK
+     */
     public function actionActivate($id)
     {        
         $user = $this->findOne($id);
@@ -108,6 +115,12 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Set status MongoUser::STATUS_INACTIVE
+     *
+     * @param string $id
+     * @return yii\console\ExitCode::OK
+     */
     public function actionInactivate($id)
     {        
         $user = $this->findOne($id);
@@ -121,6 +134,12 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Sets status MongoUser::STATUS_DELETED
+     *
+     * @param string $id
+     * @return yii\console\ExitCode::OK
+     */
     public function actionDelete($id)
     {        
         $user = $this->findOne($id);
@@ -134,6 +153,14 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * 
+     * Find MongoUser or throw Exception
+     *
+     * @param string $id
+     * @return common\models\MongoUser
+     * @throws Exception
+     */
     private function findOne($id)
     {
         if (!$user = MongoUser::findOne($id)) {
