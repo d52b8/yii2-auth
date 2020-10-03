@@ -108,6 +108,19 @@ class UserController extends Controller
         }
     }
 
+    public function actionInactivate($id)
+    {        
+        $user = $this->findOne($id);
+
+        $user->status = MongoUser::STATUS_INACTIVE;
+
+        if ($user->save()) {
+            $this->stdout(VarDumper::dumpAsString($user->toArray()));
+            $this->stdout("\n");
+            return ExitCode::OK;
+        }
+    }
+
     public function actionDelete($id)
     {        
         $user = $this->findOne($id);

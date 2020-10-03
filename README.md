@@ -41,7 +41,8 @@ composer require --prefer-dist yiisoft/yii2-mongodb
 ./yii user
 ./yii user/create 'username' 'password' 'email'
 ./yii user/set-password 'id' 'password'
-./yii user/delete 'id'
 ./yii user/activate 'id'
+./yii user/inactivate 'id'
+./yii user/delete 'id'
 
 ```
