@@ -181,7 +181,7 @@ class UserController extends Controller
     {        
         $user = $this->findOne($id);
 
-        $services = $user->services;
+        $services = (array) $user->services;
 
         if (array_search($serviceId, $services) !== false) {
             return;
