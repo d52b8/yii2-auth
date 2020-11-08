@@ -404,7 +404,7 @@ class MongoUser extends ActiveRecord implements IdentityInterface
 
     public function eventLoginAttempt($event)
     {
-        $message = "Учетная запись {$event->sender->username} попытка авторизации {$event->sender->login_attempt}";
+        $message = "Учетная запись {$event->sender->username} попытка авторизации";
         $response = (\Yii::$container->get('bot'))->sendMessage($message);
     }
 
@@ -416,7 +416,7 @@ class MongoUser extends ActiveRecord implements IdentityInterface
 
     public function eventLoginAttemptFail($event)
     {
-        $message = "Учетная запись {$event->sender->username} пароль не принят";
+        $message = "Учетная запись {$event->sender->username} пароль не принят {$event->sender->login_attempt}";
         $response = (\Yii::$container->get('bot'))->sendMessage($message);
     }
 
