@@ -106,7 +106,7 @@ class UserController extends Controller
     {        
         $user = $this->findOne($id);
 
-        $user->status = MongoUser::STATUS_ACTIVE;
+        $user->activate();
 
         if ($user->save()) {
             $this->stdout(VarDumper::dumpAsString($user->toArray()));
@@ -125,7 +125,7 @@ class UserController extends Controller
     {        
         $user = $this->findOne($id);
 
-        $user->status = MongoUser::STATUS_INACTIVE;
+        $user->inactivate();
 
         if ($user->save()) {
             $this->stdout(VarDumper::dumpAsString($user->toArray()));
@@ -168,5 +168,84 @@ class UserController extends Controller
         }
 
         return $user;
+    }
+
+    /**
+     * Add service
+     *
+     * @param string $id
+     * @param string $serviceId
+     * @return yii\console\ExitCode::OK
+     */
+    public function actionAddService($id, $serviceId)
+    {        
+        $user = $this->findOne($id);
+
+        $services = $user->services;
+
+        if (array_search($serviceId, $services) !== false) {
+            return;
+        }
+
+        $services[] = $serviceId;
+        $user->services = $services;
+
+        if ($user->save()) {
+            $this->stdout(VarDumper::dumpAsString($user->toArray()));
+            $this->stdout("\n");
+            return ExitCode::OK;
+        }
+    }
+
+    /**
+     * Delete service
+     *
+     * @param string $id
+     * @param string $serviceId
+     * @return yii\console\ExitCode::OK
+     */
+    public function actionDeleteService($id, $serviceId)
+    {        
+        $user = $this->findOne($id);
+
+        $services = $user->services;
+        $index = array_search($serviceId, $services);
+
+        if ($index === false) {
+            return;
+        }
+
+        unset($services[$index]);
+        $user->services = $services;
+
+        if ($user->save()) {
+            $this->stdout(VarDumper::dumpAsString($user->toArray()));
+            $this->stdout("\n");
+            return ExitCode::OK;
+        }
+    }
+
+    /**
+     * Has service
+     *
+     * @param string $id
+     * @param string $serviceId
+     * @return yii\console\ExitCode::OK
+     */
+    public function actionValidateService($id, $serviceId)
+    {        
+        $user = $this->findOne($id);
+
+        if (!$user) {
+            throw new Exception("User not found", 1);
+        }
+
+        $user->validateService($serviceId);
+
+        if ($user) {
+            $this->stdout(VarDumper::dumpAsString($user->toArray()));
+            $this->stdout("\n");
+            return ExitCode::OK;
+        }
     }
 }

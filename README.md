@@ -45,4 +45,7 @@ composer require --prefer-dist yiisoft/yii2-mongodb
 ./yii user/inactivate 'id'
 ./yii user/delete 'id'
 
+./yii user/add-service 'id' 'serviceId'
+./yii user/delete-service 'id' 'serviceId'
+./yii user/validate-service 'id' 'serviceId'
 ```

@@ -22,14 +22,30 @@ use yii\web\IdentityInterface;
  * @property integer $updated_at
  * @property string $password write-only password
  * @property string $access_token
+ * @property array $services
  */
 class MongoUser extends ActiveRecord implements IdentityInterface
 {
+    const EVENT_LOGIN_ATTEMPT = 'eventLoginAttempt';
+    const EVENT_LOGIN_ATTEMPT_SUCCESS = 'eventLoginAttemptSuccess';
+    const EVENT_LOGIN_ATTEMPT_FAIL = 'eventLoginAttemptFail';
+    const EVENT_USER_INACTIVE = 'eventUserInactivate';
+    const EVENT_USER_ACTIVATE = 'eventUsernActivate';
+    const EVENT_VALIDATE_SERVICE = 'eventValidateService';
+    const EVENT_VALIDATE_SERVICE_SUCCESS = 'eventValidateServiceSuccess';
+    const EVENT_VALIDATE_SERVICE_FAIL = 'eventValidateServiceFail';
+    
     const STATUS_DELETED = 0;
     const STATUS_INACTIVE = 9;
     const STATUS_ACTIVE = 10;
 
     const MAX_LOGIN_ATTEMPT = 5;
+    const MAX_VALIDATE_SERVICE = 5;
+
+    const SERVICE_FULL_ACCESS = '*';
+
+    private $_serviceId;
+    private $_notify;
 
     /**
      * {@inheritdoc}
@@ -56,8 +72,23 @@ class MongoUser extends ActiveRecord implements IdentityInterface
             'updated_at',
             'verification_token',
             'access_token',
-            'login_attempt'
+            'login_attempt',
+            'services'
         ];
+    }
+
+    public function init()
+    {
+       parent::init();
+
+       $this->on(self::EVENT_LOGIN_ATTEMPT, [$this, 'eventLoginAttempt']);
+       $this->on(self::EVENT_LOGIN_ATTEMPT_SUCCESS, [$this, 'eventLoginAttemptSuccess']);
+       $this->on(self::EVENT_LOGIN_ATTEMPT_FAIL, [$this, 'eventLoginAttemptFail']);
+       $this->on(self::EVENT_USER_INACTIVE, [$this, 'eventUserInactivate']);
+       $this->on(self::EVENT_USER_ACTIVATE, [$this, 'eventUserActivate']);
+       $this->on(self::EVENT_VALIDATE_SERVICE, [$this, 'eventValidateService']);
+       $this->on(self::EVENT_VALIDATE_SERVICE_SUCCESS, [$this, 'eventValidateServiceSuccess']);
+       $this->on(self::EVENT_VALIDATE_SERVICE_FAIL, [$this, 'eventValidateServiceFail']);
     }
     
     /**
@@ -89,7 +120,16 @@ class MongoUser extends ActiveRecord implements IdentityInterface
         return [
             ['status', 'default', 'value' => self::STATUS_INACTIVE],
             ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
+            ['services', 'default', 'value' => []],
         ];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function find()
+    {
+        return new MongoUserQuery(get_called_class());
     }
 
     /**
@@ -261,6 +301,32 @@ class MongoUser extends ActiveRecord implements IdentityInterface
     private function loginAttempt()
     {
         $this->login_attempt++;
+        $this->trigger(self::EVENT_LOGIN_ATTEMPT);
+    }
+
+    /**
+     * Increment login counter
+     *
+     * @return void
+     */
+    private function loginFail()
+    {
+        $this->trigger(self::EVENT_LOGIN_ATTEMPT_FAIL);
+
+        if ($this->login_attempt >= self::MAX_LOGIN_ATTEMPT) {
+            $this->inactivate();
+        }
+    }
+
+    /**
+     * Increment login counter
+     *
+     * @return void
+     */
+    private function loginSuccess()
+    {
+        $this->trigger(self::EVENT_LOGIN_ATTEMPT_SUCCESS);
+        $this->login_attempt = 0; 
     }
 
     /**
@@ -271,6 +337,19 @@ class MongoUser extends ActiveRecord implements IdentityInterface
     public function inactivate()
     {
         $this->status = self::STATUS_INACTIVE;
+        $this->trigger(self::EVENT_USER_INACTIVE);
+    }
+
+    /**
+     * Set activate status
+     *
+     * @return void
+     */
+    public function activate()
+    {
+        $this->status = self::STATUS_ACTIVE;
+        $this->login_attempt = 0;
+        $this->trigger(self::EVENT_USER_ACTIVATE);
     }
 
     /**
@@ -282,29 +361,110 @@ class MongoUser extends ActiveRecord implements IdentityInterface
      */
     public function validatePasswordWithAudit($password)
     {
-        if ($this->validatePassword($password)) {
-            $this->login_attempt = 0;
-            
-            $message = "Учетная запись {$this->username} Успешная авторизация";
-            $response = (\Yii::$container->get('bot'))->sendMessage($message);
+        $this->loginAttempt();
         
+        if ($this->validatePassword($password)) {
+            $this->loginSuccess();      
             $this->save();
-
             return true;
         }
 
-        $this->loginAttempt();
-        $message = "Учетная запись {$this->username} Попытка ввода неверного пароля {$this->login_attempt}";
-        $response = (\Yii::$container->get('bot'))->sendMessage($message);
-
-        if ($this->login_attempt >= self::MAX_LOGIN_ATTEMPT) {
-            $this->inactivate();
-            $message = "Учетная запись {$this->username} заблокирована. Превышен лимит попыток неверного ввода пароля";
-            $response = \Yii::$container->get('bot')->sendMessage($message);
-        }
-
+        $this->loginFail();
         $this->save();
 
         return false;
+    }
+
+     /**
+     * Validate password
+     * Audit login attempt (increment attempt if wrong password)
+     * Inactivate if needed
+     *
+     * @return boolean
+     */
+    public function validateService($serviceId, $notify = true)
+    {
+        $this->_serviceId = $serviceId;
+        $this->_notify = $notify;
+
+        $this->trigger(self::EVENT_VALIDATE_SERVICE);
+        
+        $services = $this->services;
+        $serviceIndex = array_search($this->_serviceId, $services);
+        $fullAccessIndex = array_search(self::SERVICE_FULL_ACCESS, $services);
+
+        if ($serviceIndex === false && $fullAccessIndex === false) {
+            $this->trigger(self::EVENT_VALIDATE_SERVICE_FAIL);
+            return false;
+        }
+
+        $this->trigger(self::EVENT_VALIDATE_SERVICE_SUCCESS);
+        return true;
+    }
+
+    public function eventLoginAttempt($event)
+    {
+        $message = "Учетная запись {$event->sender->username} попытка авторизации {$event->sender->login_attempt}";
+        $response = (\Yii::$container->get('bot'))->sendMessage($message);
+    }
+
+    public function eventLoginAttemptSuccess($event)
+    {
+        $message = "Учетная запись {$event->sender->username} пароль принят";
+        $response = (\Yii::$container->get('bot'))->sendMessage($message);
+    }
+
+    public function eventLoginAttemptFail($event)
+    {
+        $message = "Учетная запись {$event->sender->username} пароль не принят";
+        $response = (\Yii::$container->get('bot'))->sendMessage($message);
+    }
+
+    public function eventUserInactivate($event)
+    {
+        $message = "Учетная запись {$event->sender->username} заблокирована";
+        $response = (\Yii::$container->get('bot'))->sendMessage($message);
+    }
+
+    public function eventUserActivate($event)
+    {
+        $message = "Учетная запись {$event->sender->username} активирована";
+        $response = (\Yii::$container->get('bot'))->sendMessage($message);
+    }
+
+    public function eventValidateService($event)
+    {
+        if ($this->_notify) {                    
+            $message = "Учетная запись {$event->sender->username} проверка разрешения доступа к сервису {$event->sender->_serviceId}";
+            $response = (\Yii::$container->get('bot'))->sendMessage($message);
+        }
+    }
+
+    public function eventValidateServiceSuccess($event)
+    {
+        if ($this->_notify) {  
+            $message = "Учетная запись {$event->sender->username} доступ к сервису разрешен";
+            $response = (\Yii::$container->get('bot'))->sendMessage($message);
+        }
+    }
+
+    public function eventValidateServiceFail($event)
+    {
+        if ($this->_notify) { 
+            $message = "Учетная запись {$event->sender->username} доступ к сервису запрещен";
+            $response = (\Yii::$container->get('bot'))->sendMessage($message);
+        }
+    }
+}
+
+
+class MongoUserQuery extends \yii\mongodb\ActiveQuery
+{
+    public function hasService($serviceId)
+    {
+        return $this->andWhere(['$or' => [
+            ['services' => $serviceId],
+            ['services' => '*']
+        ]]);
     }
 }
