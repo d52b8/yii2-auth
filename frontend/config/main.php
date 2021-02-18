@@ -51,6 +51,7 @@ return [
             'rules' => [
                 'login' => 'api/login',
                 'identity' => 'api/identity',
+                'profile/<id:[\d\w]{24}>' => 'api/profile',
             ],
         ],
     ],

@@ -455,6 +455,15 @@ class MongoUser extends ActiveRecord implements IdentityInterface
             $response = (\Yii::$container->get('bot'))->sendMessage($message);
         }
     }
+
+    public function getProfile()
+    {
+        return [
+            "_id" => (string) $this->_id,
+            "username" => $this->username,
+            "email" => $this->email,
+        ];
+    }   
 }
 
 
